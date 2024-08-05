@@ -1,3 +1,4 @@
+import itertools
 from functools import reduce
 import os
 from pathlib import Path
@@ -68,6 +69,30 @@ def create_rand_df(
     return df
 
 
+def create_skewed_df(
+    n_rows: int,
+    fractions: list[float]
+    ) -> DataFrame:
+
+    spark = SparkSession.getActiveSession()
+    df = spark.range(n_rows)
+    frac_sum = sum(fractions)
+    # TODO
+
+    return df
+
+
+def get_case_stat(
+    part_mode: str,
+    n_rows: int,
+    n_part: int,
+    cols: list[str]
+    ) -> DataFrame:
+
+    # TODO
+    pass
+
+
 def print_parquet_stats(dir_name: str) -> None:
 
     spark = SparkSession.getActiveSession()
@@ -105,6 +130,26 @@ def get_parquet_stats(dir_name: str) -> DataFrame:
 
 
 def main():
+
+    n_rows_dim = [10 ** 6, 10 ** 7]
+    # TODO skew
+    # TODO grid sum
+
+    # TODO bucket
+    # TODO coalesce
+    part_mode = ['repartition']
+    n_part_dim = [2, None]
+    cols_dim = [["id"], None]
+
+    stats = []
+    for params in itertools.product(
+        n_rows_dim,
+        part_mode,
+        n_part_dim,
+        cols_dim
+    ):
+        stats = get_case_stat(*params)
+
     spark: SparkSession = SparkSession.builder.master("local").getOrCreate()
     cases = [
         PartitioningCase("repart_1m_p2", 10**6, 2, n_part=2),
