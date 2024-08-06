@@ -3,7 +3,7 @@ from functools import reduce
 import os
 from pathlib import Path
 
-from pyspark.sql import SparkSession, DataFrame
+from pyspark.sql import SparkSession, DataFrame, Column
 from pyspark.sql import functions as F
 from pyspark.sql.types import IntegerType
 
@@ -77,9 +77,30 @@ def create_skewed_df(
     spark = SparkSession.getActiveSession()
     df = spark.range(n_rows)
     frac_sum = sum(fractions)
-    # TODO
+    norm_fractions = (frac / frac_sum for frac in fractions)
+    cumulative_norm_fractions = itertools.accumulate(norm_fractions)
+    rank_col = column_rank(F.rand(), cumulative_norm_fractions)
+    df = df.withColumn('id', rank_col)
 
     return df
+
+
+def column_rank(col: Column, iterable: list) -> Column:
+    '''Return column rank within list.
+
+    Parameters
+    ----------
+        col : Column
+            Column with numeric values.
+
+        list_ : list_
+            Sorted list of numeric values.
+    '''
+
+    for i, value in enumerate(iterable):
+        rank_col = F.when(col <= value, i).otherwise(i + 1)
+
+    return rank_col
 
 
 def get_case_stat(
