@@ -97,8 +97,9 @@ def column_rank(col: Column, iterable: list) -> Column:
             Sorted list of numeric values.
     '''
 
+    rank_col = F.lit(0)
     for i, value in enumerate(iterable):
-        rank_col = F.when(col <= value, i).otherwise(i + 1)
+        rank_col = F.when(col <= value, rank_col).otherwise(i + 1)
 
     return rank_col
 
