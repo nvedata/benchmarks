@@ -1,6 +1,7 @@
 from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
 
-from parquet_size import column_rank
+from parquet_size import column_rank, create_skewed_df
 from conftest import dataframe_diff
 
 from pyspark.sql import functions as F
@@ -22,5 +23,13 @@ def test_column_rank():
     left_diff, right_diff = dataframe_diff(df, expected_df)
     assert left_diff.isEmpty() and right_diff.isEmpty()
 
+
+def show_skewed_df():
+    df = create_skewed_df(10 ** 6, [1, 1, 2, 3, 5])
+    gr_df = df.groupby('id').agg(F.count('id').alias('count'))
+    gr_df.show()
+
+
 if __name__ == '__main__':
     test_column_rank()
+    show_skewed_df()
