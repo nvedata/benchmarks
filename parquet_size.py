@@ -75,12 +75,15 @@ def create_skewed_df(
     ) -> DataFrame:
 
     spark = SparkSession.getActiveSession()
-    df = spark.range(n_rows)
+
     frac_sum = sum(fractions)
     norm_fractions = (frac / frac_sum for frac in fractions)
     cumulative_norm_fractions = itertools.accumulate(norm_fractions)
-    rank_col = column_rank(F.rand(), cumulative_norm_fractions)
-    df = df.withColumn('id', rank_col)
+
+    df = spark.range(n_rows)
+    df = df.withColumn('rand', F.rand()).cache()
+    rank_col = column_rank(F.col('rand'), cumulative_norm_fractions)
+    df = df.select(rank_col.alias('id'))
 
     return df
 
