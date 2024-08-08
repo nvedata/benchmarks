@@ -25,9 +25,9 @@ def test_column_rank():
 
 
 def show_skewed_df():
-    df = create_skewed_df(10 ** 6, [1, 1, 2, 3, 5])
+    df = create_skewed_df(10 ** 6, [5, 3, 2, 1, 1])
     gr_df = df.groupby('id').agg(F.count('id').alias('count'))
-    gr_df.show()
+    gr_df.sort('count').show()
 
 
 if __name__ == '__main__':
