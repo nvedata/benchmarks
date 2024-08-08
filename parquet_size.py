@@ -3,7 +3,7 @@ from functools import reduce
 import os
 from pathlib import Path
 
-from pyspark.sql import SparkSession, DataFrame, Column
+from pyspark.sql import SparkSession, DataFrame, Column, DataFrameWriter
 from pyspark.sql import functions as F
 from pyspark.sql.types import IntegerType
 
@@ -107,15 +107,70 @@ def column_rank(col: Column, iterable: list) -> Column:
     return rank_col
 
 
-def get_case_stat(
-    part_mode: str,
-    n_rows: int,
-    n_part: int,
-    cols: list[str]
+def partitioning(
+    df: DataFrame,
+    mode: str,
+    n_part: int = None,
+    cols: list[str] = None
     ) -> DataFrame:
 
-    # TODO
-    pass
+    if mode == 'repartition':
+        if n_part is None:
+            df = df.repartition(*cols)
+        elif cols is None:
+            df = df.repartition(n_part)
+        else:
+            df = df.repartition(n_part, *cols)
+        return df
+    
+    elif mode == 'coalesce':
+        df = df.coalesce(n_part)
+        return df
+
+    else:
+        raise ValueError(
+            'Unknown `mode` value. Available values: '
+            '`repartition`, `coalesce`'
+        )
+    
+
+def get_bucketing_writer(
+    df: DataFrame,
+    n_buckets: int = None,
+    bucket_cols: list[str] = None
+    ) -> DataFrameWriter:
+
+    if n_buckets is None != bucket_cols is None:
+        raise ValueError(
+            'Both `n_buckets` and `bucket_cols` must be `None`, '
+            'or both must be specified'
+        )
+    
+    if n_buckets is None:
+        return df.write
+    else:
+        return df.write.bucketBy(n_buckets, *bucket_cols)
+
+
+def set_writer_sorting(
+    writer: DataFrameWriter,
+    sorting_cols: list[str] = None
+    ) -> DataFrame:
+
+    if sorting_cols is None:
+        return writer
+    else:
+        writer.sortBy()
+
+
+def get_case_stat(params: dict) -> DataFrame:
+
+    spark = SparkSession.getActiveSession()
+    stats_df = get_parquet_stats(self.name)
+    case_df : DataFrame = spark.createDataFrame([params])
+    case_df = case_df.join(stats_df, F.lit(True))
+    
+    return case_df
 
 
 def print_parquet_stats(dir_name: str) -> None:
@@ -156,26 +211,37 @@ def get_parquet_stats(dir_name: str) -> DataFrame:
 
 def main():
 
+    spark: SparkSession = SparkSession.builder.master("local").getOrCreate()
+
+    # TODO grids sum
+
     n_rows_dim = [10 ** 6, 10 ** 7]
-    # TODO skew
+    fractions_dim = [[1, 1], [99, 1]]
     # TODO grid sum
 
     # TODO bucket
+    # TODO sortby
     # TODO coalesce
-    part_mode = ['repartition']
+    part_mode_dim = ['repartition']
     n_part_dim = [2, None]
     cols_dim = [["id"], None]
 
     stats = []
     for params in itertools.product(
+        fractions_dim,
         n_rows_dim,
-        part_mode,
+        part_mode_dim,
         n_part_dim,
         cols_dim
     ):
-        stats = get_case_stat(*params)
+        fractions, n_rows, mode, n_part, cols = params
+        # df = create_skewed_df(n_rows, fractions)
+        # df = partitioning(df, mode, n_part, cols)
+        # writer = get_bucketing_writer(df, n_buckets, bucket_cols)
+        # writer = set_writer_sorting(writer, sorting_cols)
+        # stats = get_case_stat(df)
 
-    spark: SparkSession = SparkSession.builder.master("local").getOrCreate()
+    
     cases = [
         PartitioningCase("repart_1m_p2", 10**6, 2, n_part=2),
         PartitioningCase("repart_1m_p2_cols", 10**6, 2, n_part=2, cols=['id']),
@@ -193,6 +259,6 @@ def main():
     stats_df = reduce(DataFrame.union, stats)
     stats_df.orderBy("dir_name", "part_name", "id").show()
 
-
+    # TODO parquet cleanup option
 if __name__ == "__main__":
     main()
