@@ -214,32 +214,43 @@ def main():
     spark: SparkSession = SparkSession.builder.master("local").getOrCreate()
 
     # TODO grids sum
-
-    n_rows_dim = [10 ** 6, 10 ** 7]
-    fractions_dim = [[1, 1], [99, 1]]
-    # TODO grid sum
-
-    # TODO bucket
-    # TODO sortby
-    # TODO coalesce
-    part_mode_dim = ['repartition']
-    n_part_dim = [2, None]
-    cols_dim = [["id"], None]
+    dimensions = {
+        "n_rows": [
+            10 ** 6,
+            10 ** 7
+        ],
+        "fractions": [
+            [1, 1],
+            [99, 1]
+        ],
+        # TODO coalesce
+        "part_mode": [
+            "repartition"
+        ],
+        "n_part": [None, 2],
+        "part_cols": [
+            None,
+            ["id"]
+        ],
+        "buckets" : [
+            [1, "id"],
+            [2, "id"],
+            [None, None]
+        ],
+        "sort_cols": [
+            ["id", None]
+        ]
+    }
 
     stats = []
-    for params in itertools.product(
-        fractions_dim,
-        n_rows_dim,
-        part_mode_dim,
-        n_part_dim,
-        cols_dim
-    ):
-        fractions, n_rows, mode, n_part, cols = params
+    for values in itertools.product(*dimensions.values()):
+        params = {key: val for key, val in zip(dimensions.keys(), values)}
+        print(params)
         # df = create_skewed_df(n_rows, fractions)
         # df = partitioning(df, mode, n_part, cols)
         # writer = get_bucketing_writer(df, n_buckets, bucket_cols)
-        # writer = set_writer_sorting(writer, sorting_cols)
-        # stats = get_case_stat(df)
+        # writer = set_writer_sorting(writer, sort_cols)
+        # stats = get_case_stat(df, params)
 
     
     cases = [
