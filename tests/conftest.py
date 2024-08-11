@@ -1,6 +1,7 @@
 from pyspark.sql import SparkSession, DataFrame
 
-SparkSession.builder.master("local").getOrCreate()
+def create_spark_session():
+    SparkSession.builder.master("local").getOrCreate()
 
 
 def dataframe_diff(left: DataFrame, right: DataFrame) -> tuple[DataFrame, DataFrame]:
