@@ -1,7 +1,8 @@
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
-from parquet_size import column_rank, create_skewed_df
+from parquet_size import column_rank, create_skewed_df, Point
+from utils.spark import annotations_to_schema
 from conftest import dataframe_diff, create_spark_session
 
 from pyspark.sql import functions as F
@@ -31,6 +32,11 @@ def show_skewed_df():
     gr_df = df.groupby('id').agg(F.count('id').alias('count'))
     gr_df.sort('count').show()
 
+
+def test_point_schema():
+    '''Check if point schema is compatible with PySpark DataFrame schema.'''
+    schema = annotations_to_schema(Point)
+    assert schema
 
 if __name__ == '__main__':
     test_column_rank()
