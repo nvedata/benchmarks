@@ -1,5 +1,5 @@
 from pyspark.sql import types as T
-from types import GenericAlias, UnionType
+from types import UnionType
 from typing import get_origin, get_args, get_type_hints
 
 def to_pyspark_type(py_type: type) -> T.DataType:
@@ -13,17 +13,21 @@ def to_pyspark_type(py_type: type) -> T.DataType:
     else: raise TypeError('unable to map the type')
 
 
-def annotation_is_type(annotation: object, type_: type) -> bool:
+def annotation_is_list(annotation: object) -> bool:
 
-    if annotation == list:
-        return True
-    elif get_origin(annotation) == list:
-        return True
+    origin = get_origin(annotation)
+    if origin is None:
+        return annotation == list
+    elif origin == UnionType:
+        checks = []
+        for arg in get_args(annotation):
+            checks.append(annotation_is_list(arg))
+        return any(checks)
     else:
-        return False
+        return origin == list
 
 
-def annotations_to_schema(dataclass) -> T.StructType:
+def annotations_to_schema(dataclass: type) -> T.StructType:
 
     annotations = get_type_hints(dataclass)
     fields = []
@@ -33,8 +37,7 @@ def annotations_to_schema(dataclass) -> T.StructType:
         ant_args = get_args(ant)
         # list is converted to str
         # TODO support of list and dict types
-        # TODO fix for union, i.e. list[str] | None
-        if annotation_is_type(ant, list):
+        if annotation_is_list(ant):
             type_ = str
         elif ant_args:
             type_ = ant_args[0]
