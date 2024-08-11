@@ -39,9 +39,10 @@ def annotations_to_schema(dataclass: type) -> T.StructType:
         # TODO support of list and dict types
         if annotation_is_list(ant):
             type_ = str
+            nullable = ant_args[-1] == type(None)
         elif ant_args:
             type_ = ant_args[0]
-            nullable = ant_args[-1] is None
+            nullable = ant_args[-1] == type(None)
         else:
             type_ = ant
 

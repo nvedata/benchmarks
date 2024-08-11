@@ -217,7 +217,7 @@ def get_case_stat(params: Point, dir_name: str) -> DataFrame:
     stats_df = get_parquet_stats(dir_name)
     params_f= format_params(params)
     schema = annotations_to_schema(Point)
-    case_df : DataFrame = spark.createDataFrame(params_f, schema=schema)
+    case_df : DataFrame = spark.createDataFrame([params_f], schema=schema)
     case_df = case_df.join(stats_df, F.lit(True))
     
     return case_df
@@ -312,15 +312,6 @@ def main():
     }
 
     stats = []
-    # for values in itertools.product(*dimensions.values()):
-    #     params = {key: val for key, val in zip(dimensions.keys(), values)}
-    #     print(params)
-        # df = create_skewed_df(n_rows, fractions)
-        # df = partitioning(df, mode, n_part, cols)
-        # writer = get_bucketing_writer(df, n_buckets, bucket_cols)
-        # writer = set_writer_sorting(writer, sort_cols)
-        # stats = get_case_stat(df, params)
-
     dims = Dimensions(**dimensions)
     # TODO enumerate starting from max dir_name for append mode
     # TODO grid subtraction to exclude existing parameters
@@ -328,26 +319,13 @@ def main():
         dir_name = str(i)
         p = Point(*point)
         print(vars(p))
-        # df = create_skewed_df(p.n_rows, p.fractions)
-        # df = partitioning(df, p.part_mode, p.n_part, p.part_cols)
-        # # bucketing is not supported for parquet
-        # # writer = get_bucketing_writer(df, *p.buckets, p.sort_cols)
-        # df.write.parquet(dir_name, mode='overwrite')
-        # stats = get_case_stat(p, dir_name)
-    
-    cases = [
-        PartitioningCase("repart_1m_p2", 10**6, 2, n_part=2),
-        PartitioningCase("repart_1m_p2_cols", 10**6, 2, n_part=2, cols=['id']),
-        PartitioningCase("repart_1m_cols", 10**6, 2, cols=['id']),
-        PartitioningCase("repart_10m_p2", 10**7, 2, n_part=2),
-        PartitioningCase("repart_10m_p2_cols", 10**7, 2, n_part=2, cols=['id']),
-        PartitioningCase("repart_10m_cols", 10**7, 2, cols=['id'])
-    ]
-
-    stats = []
-    for case_ in cases:
-        stats_df = case_.run()
-        stats.append(stats_df)
+        df = create_skewed_df(p.n_rows, p.fractions)
+        df = partitioning(df, p.part_mode, p.n_part, p.part_cols)
+        # bucketing is not supported for parquet
+        # writer = get_bucketing_writer(df, *p.buckets, p.sort_cols)
+        df.write.parquet(dir_name, mode='overwrite')
+        case_stat_df = get_case_stat(p, dir_name)
+        stats.append(case_stat_df)
 
     report = reduce(DataFrame.union, stats)
     report.orderBy("dir_name", "part_name", "id").show()
