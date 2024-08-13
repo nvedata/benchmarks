@@ -9,7 +9,7 @@ from pyspark.sql import SparkSession, DataFrame, Column, DataFrameWriter
 from pyspark.sql import functions as F
 from pyspark.sql.types import IntegerType
 
-from utils.spark import annotations_to_schema
+from utils.spark import annotations_to_schema, write_single_csv
 
 
 @dataclass
@@ -328,7 +328,8 @@ def main():
         stats.append(case_stat_df)
 
     report = reduce(DataFrame.union, stats)
-    report.orderBy("dir_name", "part_name", "id").show()
+    report = report.orderBy("dir_name", "part_name", "id")
+    write_single_csv(report, 'parquet_size_report.csv')
     # TODO write report to csv with append option
 
     # TODO parquet cleanup option
