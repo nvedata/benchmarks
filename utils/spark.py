@@ -1,6 +1,10 @@
-from pyspark.sql import types as T
+from pathlib import Path
+import tempfile
 from types import UnionType
 from typing import get_origin, get_args, get_type_hints
+
+from pyspark.sql import DataFrame
+from pyspark.sql import types as T
 
 def to_pyspark_type(py_type: type) -> T.DataType:
 
@@ -52,3 +56,10 @@ def annotations_to_schema(dataclass: type) -> T.StructType:
 
     schema = T.StructType(fields)
     return schema
+
+
+def write_single_csv(df: DataFrame, path: str) -> None:
+    with tempfile.TemporaryDirectory() as temp_path:
+        df.coalesce(1).write.csv(temp_path, header=True, mode='overwrite')
+        csv_path = next(Path(temp_path).glob('*.csv'))
+        csv_path.replace(path)
