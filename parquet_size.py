@@ -269,7 +269,7 @@ def get_parquet_stats(dir_name: str) -> DataFrame:
     stats = []
     for path in parquet_paths:
         stat_df : DataFrame = spark.createDataFrame([{
-            "dir_name": dir_name,
+            "dir_name": int(dir_name),
             "part_name": path.name.split("-")[1],
             "file_size": os.path.getsize(path)
         }])
