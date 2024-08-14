@@ -29,6 +29,9 @@ class Point:
     # buckets: list[int, list[str]]
     # sort_cols: list[str] | None
 
+    def to_tuple(self) -> tuple:
+        return tuple(vars(self).values())
+
 
 class Dimensions(Point):
 
