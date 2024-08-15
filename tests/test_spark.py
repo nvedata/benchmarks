@@ -1,10 +1,11 @@
 import datetime
+import json
 import pytest
 
 from pyspark.sql import SparkSession
 from pyspark.sql import types as T
 
-from utils.spark import annotation_is_list, write_single_csv
+from utils.spark import annotation_is_list, write_single_csv, write_schema
 from conftest import create_spark_session, dataframe_diff
 
 create_spark_session()
@@ -31,7 +32,6 @@ def test_write_single_csv() -> None:
     path = 'tests/example.csv'
     schema = T.StructType([
         T.StructField('int_value', T.IntegerType()),
-        # TODO correct comparison of float
         T.StructField('float_value', T.FloatType()),
         T.StructField('string_value', T.StringType()),
         T.StructField('datetime_value', T.TimestampType())
@@ -50,3 +50,25 @@ def test_write_single_csv() -> None:
 
     left_diff, right_diff = dataframe_diff(df, expected_df)
     assert left_diff.isEmpty() and right_diff.isEmpty()
+
+
+def test_write_schema() -> None:
+
+    spark = SparkSession.getActiveSession()
+
+    path = 'tests/example.json'
+    expected_schema = T.StructType([
+        T.StructField('int_value', T.IntegerType()),
+        T.StructField('float_value', T.FloatType()),
+        T.StructField('string_value', T.StringType()),
+        T.StructField('datetime_value', T.TimestampType())
+    ])
+
+    write_schema(expected_schema, path)
+    # TODO assert with read_schema
+    with open(path) as file:
+        schema_dict = json.load(file)
+
+    schema = T.StructType.fromJson(schema_dict)
+
+    assert schema == expected_schema
