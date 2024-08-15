@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import tempfile
 from types import UnionType
@@ -63,3 +64,10 @@ def write_single_csv(df: DataFrame, path: str) -> None:
         df.coalesce(1).write.csv(temp_path, header=True, mode='overwrite')
         csv_path = next(Path(temp_path).glob('*.csv'))
         csv_path.replace(path)
+
+
+def write_schema(schema: T.StructType, path: str):
+
+    schema_dict = json.loads(schema.json())
+    with open(path, 'w') as file:
+        json.dump(schema_dict, file, indent=4)
