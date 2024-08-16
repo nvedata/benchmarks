@@ -66,8 +66,17 @@ def write_single_csv(df: DataFrame, path: str) -> None:
         csv_path.replace(path)
 
 
-def write_schema(schema: T.StructType, path: str):
+def write_schema(schema: T.StructType, path: str) -> None:
 
     schema_dict = json.loads(schema.json())
     with open(path, 'w') as file:
         json.dump(schema_dict, file, indent=4)
+
+
+def read_schema(path: str) -> T.StructType:
+
+    with open(path) as file:
+        schema_dict = json.load(file)
+
+    schema = T.StructType.fromJson(schema_dict)
+    return schema
