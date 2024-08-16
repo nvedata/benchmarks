@@ -5,7 +5,7 @@ import pytest
 from pyspark.sql import SparkSession
 from pyspark.sql import types as T
 
-from utils.spark import annotation_is_list, write_single_csv, write_schema
+from utils.spark import annotation_is_list, write_single_csv, write_schema, read_schema
 from conftest import create_spark_session, dataframe_diff
 
 create_spark_session()
@@ -66,9 +66,6 @@ def test_write_schema() -> None:
 
     write_schema(expected_schema, path)
     # TODO assert with read_schema
-    with open(path) as file:
-        schema_dict = json.load(file)
-
-    schema = T.StructType.fromJson(schema_dict)
+    schema = read_schema(path)
 
     assert schema == expected_schema
