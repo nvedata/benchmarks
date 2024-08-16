@@ -9,7 +9,7 @@ from pyspark.sql import SparkSession, DataFrame, Column, DataFrameWriter
 from pyspark.sql import functions as F
 from pyspark.sql.types import IntegerType
 
-from utils.spark import annotations_to_schema, write_single_csv, write_schema
+from utils.spark import annotations_to_schema, write_single_csv, write_schema, read_schema
 
 
 @dataclass
@@ -317,6 +317,11 @@ def main():
     stats = []
     dims = Dimensions(**dimensions)
     # TODO enumerate starting from max dir_name for append mode
+    try:
+        schema = read_schema('parquet_size_report.json')
+    except Exception as exc:
+        schema = None
+
     # TODO grid subtraction to exclude existing parameters
     for i, point in enumerate(dims.grid_iterator):
         dir_name = str(i)
