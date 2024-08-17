@@ -314,16 +314,20 @@ def main():
         ]
     }
 
+    report_path = 'parquet_size_report'
+
     stats = []
     dims = Dimensions(**dimensions)
-    # TODO enumerate starting from max dir_name for append mode
+    # TODO enumerate starting from max_dir_name for append mode
     try:
-        schema = read_schema('parquet_size_report.json')
+        schema = read_schema(f'{report_path}.json')
+        report = spark.read.csv(f'{report_path}.csv', header=True, schema=schema)
+        max_dir_name = report.agg(F.max('dir_name')).first()[0]
     except Exception as exc:
-        schema = None
-
+        max_dir_name = 0
+    
     # TODO grid subtraction to exclude existing parameters
-    for i, point in enumerate(dims.grid_iterator):
+    for i, point in enumerate(dims.grid_iterator, start=0):
         dir_name = str(i)
         p = Point(*point)
         print(vars(p))
@@ -336,9 +340,10 @@ def main():
         stats.append(case_stat_df)
 
     report = reduce(DataFrame.union, stats)
+    report = report.withColumn('dir_name', F.col('dir_name').cast(IntegerType()))
     report = report.orderBy("dir_name", "part_name", "id")
-    write_single_csv(report, 'parquet_size_report.csv')
-    write_schema(report.schema, 'parquet_size_report.json')
+    write_single_csv(report, f'{report_path}.csv')
+    write_schema(report.schema, f'{report_path}.json')
     
     # TODO write report to csv with append option
 
