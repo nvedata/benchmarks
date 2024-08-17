@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 import itertools
 from functools import reduce
 import os
@@ -10,6 +10,7 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import IntegerType
 
 from utils.spark import annotations_to_schema, write_single_csv, write_schema, read_schema
+from utils.types import to_hashable
 
 
 @dataclass
@@ -292,16 +293,16 @@ def main():
 
     spark: SparkSession = SparkSession.builder.master("local").getOrCreate()
 
-    # TODO grids sum
-    # TODO grid subtraction
+    # TODO Points sum
+    # TODO Points subtraction
     dimensions = {
         "n_rows": [
             10 ** 6,
-            10 ** 7
+            # 10 ** 7
         ],
         "fractions": [
             [1, 1],
-            [99, 1]
+            # [99, 1]
         ],
         # TODO coalesce
         "part_mode": [
@@ -319,29 +320,46 @@ def main():
     stats = []
     dims = Dimensions(**dimensions)
     # TODO enumerate starting from max_dir_name for append mode
+    # TODO extract to Points.from_csv
     try:
         schema = read_schema(f'{report_path}.json')
         report = spark.read.csv(f'{report_path}.csv', header=True, schema=schema)
         max_dir_name = report.agg(F.max('dir_name')).first()[0]
+        param_cols = [field.name for field in fields(Point)]
+        existing_params = set(
+            tuple(row.asDict().values()) 
+            for row in report.select(param_cols).collect()
+        )
     except Exception as exc:
         max_dir_name = 0
+        existing_params = set()
     
     # TODO grid subtraction to exclude existing parameters
     for i, point in enumerate(dims.grid_iterator, start=0):
         dir_name = str(i)
         p = Point(*point)
+        # TODO extract to Points.__contains__
+        param_set_exists = to_hashable(vars(p).values()) in existing_params
+        if param_set_exists:
+            continue
+
         print(vars(p))
+
+        # parametrized functions
         df = create_skewed_df(p.n_rows, p.fractions)
         df = partitioning(df, p.part_mode, p.n_part, p.part_cols)
         # bucketing is not supported for parquet
         # writer = get_bucketing_writer(df, *p.buckets, p.sort_cols)
         df.write.parquet(dir_name, mode='overwrite')
+
+        # get statistics
         case_stat_df = get_case_stat(p, dir_name)
         stats.append(case_stat_df)
 
     report = reduce(DataFrame.union, stats)
     report = report.withColumn('dir_name', F.col('dir_name').cast(IntegerType()))
     report = report.orderBy("dir_name", "part_name", "id")
+    # TODO append mode
     write_single_csv(report, f'{report_path}.csv')
     write_schema(report.schema, f'{report_path}.json')
     
