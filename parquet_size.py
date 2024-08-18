@@ -359,8 +359,7 @@ def main():
     report = reduce(DataFrame.union, stats)
     report = report.withColumn('dir_name', F.col('dir_name').cast(IntegerType()))
     report = report.orderBy("dir_name", "part_name", "id")
-    # TODO append mode
-    write_single_csv(report, f'{report_path}.csv')
+    write_single_csv(report, f'{report_path}.csv', mode='overwrite')
     write_schema(report.schema, f'{report_path}.json')
     
     # TODO write report to csv with append option

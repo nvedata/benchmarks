@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import subprocess
 import tempfile
 from types import UnionType
 from typing import get_origin, get_args, get_type_hints
@@ -59,11 +60,24 @@ def annotations_to_schema(dataclass: type) -> T.StructType:
     return schema
 
 
-def write_single_csv(df: DataFrame, path: str) -> None:
+def write_single_csv(df: DataFrame, path: str, mode: str) -> None:
+    
     with tempfile.TemporaryDirectory() as temp_path:
         df.coalesce(1).write.csv(temp_path, header=True, mode='overwrite')
         csv_path = next(Path(temp_path).glob('*.csv'))
         csv_path.replace(path)
+
+        if mode == 'overwrite':
+            csv_path.replace(path)
+
+        elif mode == 'append':
+            if Path(path).exists():
+                subprocess.run(f'tail -n +2 {str(csv_path)} >> {path}', shell=True)
+            else:
+                csv_path.replace(path)
+
+        else:
+            raise ValueError(f'Unknown mode {mode}')
 
 
 def write_schema(schema: T.StructType, path: str) -> None:
