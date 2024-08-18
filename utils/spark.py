@@ -61,17 +61,17 @@ def annotations_to_schema(dataclass: type) -> T.StructType:
 
 
 def write_single_csv(df: DataFrame, path: str, mode: str) -> None:
-    
+
     with tempfile.TemporaryDirectory() as temp_path:
         df.coalesce(1).write.csv(temp_path, header=True, mode='overwrite')
         csv_path = next(Path(temp_path).glob('*.csv'))
-        csv_path.replace(path)
 
         if mode == 'overwrite':
             csv_path.replace(path)
 
         elif mode == 'append':
             if Path(path).exists():
+                # TODO schema check
                 subprocess.run(f'tail -n +2 {str(csv_path)} >> {path}', shell=True)
             else:
                 csv_path.replace(path)
