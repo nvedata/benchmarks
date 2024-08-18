@@ -219,7 +219,7 @@ def get_case_stat(params: Point, dir_name: str) -> DataFrame:
 
     spark = SparkSession.getActiveSession()
     stats_df = get_parquet_stats(dir_name)
-    params_f= format_params(params)
+    params_f = format_params(params)
     schema = annotations_to_schema(Point)
     case_df : DataFrame = spark.createDataFrame([params_f], schema=schema)
     case_df = case_df.join(stats_df, F.lit(True))
@@ -227,8 +227,9 @@ def get_case_stat(params: Point, dir_name: str) -> DataFrame:
     return case_df
 
 
-def format_params(params: Point) -> tuple[dict[str, object]]:
+def format_params(params: Point) -> dict[str, object]:
     '''Format parameters values.
+    Convert lists to strings.
 
     Parameters
     ----------
@@ -302,7 +303,7 @@ def main():
         ],
         "fractions": [
             [1, 1],
-            # [99, 1]
+            [99, 1]
         ],
         # TODO coalesce
         "part_mode": [
@@ -319,30 +320,33 @@ def main():
 
     stats = []
     dims = Dimensions(**dimensions)
-    # TODO enumerate starting from max_dir_name for append mode
     # TODO extract to Points.from_csv
     try:
         schema = read_schema(f'{report_path}.json')
         report = spark.read.csv(f'{report_path}.csv', header=True, schema=schema)
-        max_dir_name = report.agg(F.max('dir_name')).first()[0]
+        dir_num = report.agg(F.max('dir_name')).first()[0] + 1
         param_cols = [field.name for field in fields(Point)]
         existing_params = set(
             tuple(row.asDict().values()) 
             for row in report.select(param_cols).collect()
         )
     except Exception as exc:
-        max_dir_name = 0
+        dir_num = 0
         existing_params = set()
     
-    # TODO grid subtraction to exclude existing parameters
-    for i, point in enumerate(dims.grid_iterator, start=0):
-        dir_name = str(i)
+    for point in dims.grid_iterator:
+        
         p = Point(*point)
-        # TODO extract to Points.__contains__
-        param_set_exists = to_hashable(vars(p).values()) in existing_params
+        # TODO extract to Points.from_csv
+        # format Point because existing parameters are formatted
+        params_f = format_params(p)
+        param_set_exists = tuple(params_f.values()) in existing_params
         if param_set_exists:
             continue
 
+        dir_name = str(dir_num)
+        dir_num += 1
+        
         print(vars(p))
 
         # parametrized functions
@@ -356,13 +360,12 @@ def main():
         case_stat_df = get_case_stat(p, dir_name)
         stats.append(case_stat_df)
 
-    report = reduce(DataFrame.union, stats)
-    report = report.withColumn('dir_name', F.col('dir_name').cast(IntegerType()))
-    report = report.orderBy("dir_name", "part_name", "id")
-    write_single_csv(report, f'{report_path}.csv', mode='overwrite')
-    write_schema(report.schema, f'{report_path}.json')
-    
-    # TODO write report to csv with append option
+    if stats:
+        report = reduce(DataFrame.union, stats)
+        report = report.withColumn('dir_name', F.col('dir_name').cast(IntegerType()))
+        report = report.orderBy("dir_name", "part_name", "id")
+        write_single_csv(report, f'{report_path}.csv', mode='append')
+        write_schema(report.schema, f'{report_path}.json')
 
     # TODO parquet cleanup option
 if __name__ == "__main__":
