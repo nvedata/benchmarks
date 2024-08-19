@@ -10,7 +10,6 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import IntegerType
 
 from utils.spark import annotations_to_schema, write_single_csv, write_schema, read_schema
-from utils.types import to_hashable
 
 
 @dataclass
@@ -31,7 +30,9 @@ class Point:
     # sort_cols: list[str] | None
 
     def to_tuple(self) -> tuple:
-        return tuple(vars(self).values())
+        # format Point because existing parameters are formatted
+        params_f = format_params(self)
+        return tuple(params_f.values())
 
 
 class Dimensions(Point):
@@ -92,6 +93,15 @@ class PartitioningCase:
         case_df = case_df.join(stats_df, F.lit(True))
         
         return case_df
+
+
+def points_from_dataframe(df: DataFrame, point_class: type) -> set[tuple]:
+    param_cols = [field.name for field in fields(point_class)]
+    point_set = set(
+        tuple(row.asDict().values()) 
+        for row in df.select(param_cols).collect()
+    )
+    return point_set
 
 
 def create_rand_df(
@@ -320,27 +330,20 @@ def main():
 
     stats = []
     dims = Dimensions(**dimensions)
-    # TODO extract to Points.from_csv
+
     try:
         schema = read_schema(f'{report_path}.json')
         report = spark.read.csv(f'{report_path}.csv', header=True, schema=schema)
         dir_num = report.agg(F.max('dir_name')).first()[0] + 1
-        param_cols = [field.name for field in fields(Point)]
-        existing_params = set(
-            tuple(row.asDict().values()) 
-            for row in report.select(param_cols).collect()
-        )
-    except Exception as exc:
+        existing_points = points_from_dataframe(report, Point)
+    except Exception:
         dir_num = 0
-        existing_params = set()
+        existing_points = set()
     
     for point in dims.grid_iterator:
         
         p = Point(*point)
-        # TODO extract to Points.from_csv
-        # format Point because existing parameters are formatted
-        params_f = format_params(p)
-        param_set_exists = tuple(params_f.values()) in existing_params
+        param_set_exists = p.to_tuple() in existing_points
         if param_set_exists:
             continue
 
