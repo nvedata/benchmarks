@@ -304,8 +304,7 @@ def main():
 
     spark: SparkSession = SparkSession.builder.master("local").getOrCreate()
 
-    # TODO Points sum
-    # TODO Points subtraction
+    # TODO point iterators to sets, set union and difference
     dimensions = {
         "n_rows": [
             10 ** 6,
@@ -347,7 +346,7 @@ def main():
         if param_set_exists:
             continue
 
-        dir_name = str(dir_num)
+        dir_name = f'data/{dir_num}'
         dir_num += 1
         
         print(vars(p))
@@ -370,6 +369,6 @@ def main():
         write_single_csv(report, f'{report_path}.csv', mode='append')
         write_schema(report.schema, f'{report_path}.json')
 
-    # TODO parquet cleanup option
+
 if __name__ == "__main__":
     main()
