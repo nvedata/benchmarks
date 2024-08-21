@@ -36,7 +36,7 @@ def test_write_single_csv() -> None:
         T.StructField('datetime_value', T.TimestampType())
     ])
     ts = datetime.datetime(2024, 1, 1)
-    expected_df = spark.createDataFrame(
+    expected_df = spark.createDataFrame( # type: ignore
         [
             (1, 1.0, 'a', ts),
             (None, 1.0, None, ts),
@@ -45,7 +45,7 @@ def test_write_single_csv() -> None:
         schema
     )
     write_single_csv(expected_df, path, 'overwrite')
-    df = spark.read.csv(path, header=True, schema=schema)
+    df = spark.read.csv(path, header=True, schema=schema) # type: ignore
 
     left_diff, right_diff = dataframe_diff(df, expected_df)
     assert left_diff.isEmpty() and right_diff.isEmpty()
@@ -65,7 +65,7 @@ def test_write_single_csv_append() -> None:
     ts = datetime.datetime(2024, 1, 1)
 
     # first write
-    expected_df = spark.createDataFrame(
+    expected_df = spark.createDataFrame( # type: ignore
         [
             (1, 1.0, 'a', ts),
             (None, 1.0, None, ts),
@@ -74,13 +74,13 @@ def test_write_single_csv_append() -> None:
         schema
     )
     write_single_csv(expected_df, path, 'append')
-    df = spark.read.csv(path, header=True, schema=schema)
+    df = spark.read.csv(path, header=True, schema=schema) # type: ignore
 
     left_diff, right_diff = dataframe_diff(df, expected_df)
     assert left_diff.isEmpty() and right_diff.isEmpty()
 
     # second write
-    append_df = spark.createDataFrame(
+    append_df = spark.createDataFrame( # type: ignore
         [
             (None, 2.0, 'b,c', ts)
         ],
