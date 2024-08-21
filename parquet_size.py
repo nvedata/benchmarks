@@ -46,7 +46,7 @@ class Dimensions(Point):
     # sort_cols: list[list[str] | None]
 
     @property
-    def grid_iterator(self) -> Iterable:
+    def grid_iterator(self) -> Iterable[tuple]:
         return itertools.product(*vars(self).values())
 
 
@@ -57,8 +57,8 @@ class PartitioningCase:
         name: str,
         n_rows: int,
         n_unique: int,
-        n_part: int = None,
-        cols: list = None
+        n_part: int | None = None,
+        cols: list | None = None
         ):
 
         self.name = name
@@ -71,22 +71,22 @@ class PartitioningCase:
     def repartition(self, df: DataFrame) -> DataFrame:
 
         if self.n_part is None:
-            df = df.repartition(*self.cols)
+            df_rep: DataFrame = df.repartition(*self.cols)
         elif self.cols is None:
-            df = df.repartition(self.n_part)
+            df_rep = df.repartition(self.n_part)
         else:
-            df = df.repartition(self.n_part, *self.cols)
-        return df
+            df_rep = df.repartition(self.n_part, *self.cols)
+        return df_rep
 
 
     def run(self) -> DataFrame:
 
-        spark = SparkSession.getActiveSession()
+        spark: SparkSession = SparkSession.getActiveSession() # type: ignore
         df = create_rand_df(self.n_rows, self.n_unique)
         df = self.repartition(df)
         df.write.parquet(self.name, mode="overwrite")
         stats_df = get_parquet_stats(self.name)
-        case_df : DataFrame = spark.createDataFrame([{
+        case_df : DataFrame = spark.createDataFrame([{ # type: ignore
             "n_rows": self.n_rows,
             "n_unqiue": self.n_unique,
         }])
@@ -109,7 +109,7 @@ def create_rand_df(
     n_unique: int
     ) -> DataFrame:
 
-    spark = SparkSession.getActiveSession()
+    spark: SparkSession = SparkSession.getActiveSession() # type: ignore
     df = spark.range(n_rows)
     df = df.withColumn(
         "id", 
@@ -125,7 +125,7 @@ def create_skewed_df(
     fractions: list[int | float]
     ) -> DataFrame:
 
-    spark = SparkSession.getActiveSession()
+    spark: SparkSession = SparkSession.getActiveSession() # type: ignore
 
     frac_sum = sum(fractions)
     norm_fractions = (frac / frac_sum for frac in fractions)
@@ -139,7 +139,7 @@ def create_skewed_df(
     return df
 
 
-def column_rank(col: Column, iterable: list) -> Column:
+def column_rank(col: Column, iterable: Iterable) -> Column:
     '''Return column rank within list.
 
     Parameters
@@ -161,8 +161,8 @@ def column_rank(col: Column, iterable: list) -> Column:
 def partitioning(
     df: DataFrame,
     mode: str,
-    n_part: int = None,
-    cols: list[str] = None
+    n_part: int | None = None,
+    cols: list[str] | None = None
     ) -> DataFrame:
 
     if mode == 'repartition':
@@ -192,9 +192,9 @@ def partitioning(
 
 def get_bucketing_writer(
     df: DataFrame,
-    n_buckets: int = None,
-    bucket_cols: list[str] = None,
-    sort_cols: list[str] = None
+    n_buckets: int | None = None,
+    bucket_cols: list[str] | None = None,
+    sort_cols: list[str] | None = None
     ) -> DataFrameWriter:
 
     if n_buckets is None != bucket_cols is None:
@@ -216,13 +216,13 @@ def get_bucketing_writer(
 
 def set_writer_sorting(
     writer: DataFrameWriter,
-    sort_cols: list[str] = None
+    sort_cols: list[str] | None = None
     ) -> DataFrameWriter:
 
     if sort_cols is None:
         return writer
     else:
-        writer.sortBy(sort_cols)
+        return writer.sortBy(sort_cols)
 
 
 def get_case_stat(params: Point, dir_name: str) -> DataFrame:
@@ -231,7 +231,7 @@ def get_case_stat(params: Point, dir_name: str) -> DataFrame:
     stats_df = get_parquet_stats(dir_name)
     params_f = format_params(params)
     schema = annotations_to_schema(Point)
-    case_df : DataFrame = spark.createDataFrame([params_f], schema=schema)
+    case_df : DataFrame = spark.createDataFrame([params_f], schema=schema) # type: ignore
     case_df = case_df.join(stats_df, F.lit(True))
     
     return case_df
@@ -266,24 +266,23 @@ def format_params(params: Point) -> dict[str, object]:
 
 def print_parquet_stats(dir_name: str) -> None:
 
-    spark = SparkSession.getActiveSession()
+    spark: SparkSession = SparkSession.getActiveSession() # type: ignore
     dir_path = Path(dir_name)
     parquet_paths = dir_path.glob("**/*.parquet")
     for path in parquet_paths:
         print("file size:", os.path.getsize(path))
-        df_part = spark.read.parquet(str(path))
+        df_part = spark.read.parquet(str(path)) 
         df_part.groupby("id").agg(F.count("id")).show()
 
 
 def get_parquet_stats(dir_name: str) -> DataFrame:
 
-    spark = SparkSession.getActiveSession()
+    spark: SparkSession = SparkSession.getActiveSession() # type: ignore
     dir_path = Path(dir_name)
     parquet_paths = dir_path.glob("**/*.parquet")
-    parquet_paths
     stats = []
     for path in parquet_paths:
-        stat_df : DataFrame = spark.createDataFrame([{
+        stat_df : DataFrame = spark.createDataFrame([{ # type: ignore
             "dir_name": dir_name,
             "part_name": path.name.split("-")[1],
             "file_size": os.path.getsize(path)
@@ -302,7 +301,7 @@ def get_parquet_stats(dir_name: str) -> DataFrame:
 
 def main():
 
-    spark: SparkSession = SparkSession.builder.master("local").getOrCreate()
+    spark: SparkSession = SparkSession.builder.master("local").getOrCreate() # type: ignore
 
     # TODO point iterators to sets, set union and difference
     dimensions = {
@@ -353,7 +352,7 @@ def main():
 
         # parametrized functions
         df = create_skewed_df(p.n_rows, p.fractions)
-        df = partitioning(df, p.part_mode, p.n_part, p.part_cols)
+        df = partitioning(df, p.part_mode, p.n_part, p.part_cols) # type: ignore
         # bucketing is not supported for parquet
         # writer = get_bucketing_writer(df, *p.buckets, p.sort_cols)
         df.write.parquet(dir_name, mode='overwrite')

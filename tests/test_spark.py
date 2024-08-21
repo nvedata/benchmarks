@@ -9,7 +9,7 @@ from conftest import create_spark_session, dataframe_diff
 
 create_spark_session()
 
-test_annotation_is_type_parameters = [
+test_annotation_is_type_parameters : list[tuple] = [
     (int, False),
     (list, True),
     (list[int], True),
