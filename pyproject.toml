@@ -1,0 +1,10 @@
+[tool.pyright]
+reportMissingImports = "warning"
+reportMissingTypeStubs = "warning"
+reportGeneralTypeIssues = "warning"
+reportOptionalSubscript = "warning"
+reportOptionalMemberAccess = "warning"
+reportOptionalIterable = "warning"
+reportUnknownVariableType = "warning"
+reportUninitializedInstanceVariable = "warning"
+reportArgumentType = "warning"
