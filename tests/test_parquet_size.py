@@ -5,8 +5,6 @@ from parquet_size import column_rank, create_skewed_df, Point
 from utils.spark import annotations_to_schema
 from conftest import dataframe_diff, create_spark_session
 
-from pyspark.sql import functions as F
-
 create_spark_session()
 
 def test_column_rank():

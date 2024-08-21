@@ -1,5 +1,4 @@
 import datetime
-import json
 import pytest
 
 from pyspark.sql import SparkSession
@@ -95,8 +94,6 @@ def test_write_single_csv_append() -> None:
 
 
 def test_write_schema() -> None:
-
-    spark = SparkSession.getActiveSession()
 
     path = 'tests/example.json'
     expected_schema = T.StructType([

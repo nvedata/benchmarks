@@ -11,26 +11,26 @@ from pyspark.sql import types as T
 def to_pyspark_type(py_type: type) -> T.DataType:
 
     # explicit equality comparison, unlike in match-case
-    if py_type == bool: return T.BooleanType
-    elif py_type == int: return T.IntegerType
-    elif py_type == float: return T.FloatType
-    elif py_type == str: return T.StringType
+    if py_type is bool: return T.BooleanType  # noqa: E701
+    elif py_type is int: return T.IntegerType  # noqa: E701
+    elif py_type is float: return T.FloatType  # noqa: E701
+    elif py_type is str: return T.StringType  # noqa: E701
     # elif py_type == list: return T.ArrayType 
-    else: raise TypeError('unable to map the type')
+    else: raise TypeError('unable to map the type')  # noqa: E701
 
 
 def annotation_is_list(annotation: object) -> bool:
 
     origin = get_origin(annotation)
     if origin is None:
-        return annotation == list
+        return annotation is list
     elif origin == UnionType:
         checks = []
         for arg in get_args(annotation):
             checks.append(annotation_is_list(arg))
         return any(checks)
     else:
-        return origin == list
+        return origin is list
 
 
 def annotations_to_schema(dataclass: type) -> T.StructType:
@@ -45,10 +45,10 @@ def annotations_to_schema(dataclass: type) -> T.StructType:
         # TODO support of list and dict types
         if annotation_is_list(ant):
             type_ = str
-            nullable = ant_args[-1] == type(None)
+            nullable = ant_args[-1] is type(None)
         elif ant_args:
             type_ = ant_args[0]
-            nullable = ant_args[-1] == type(None)
+            nullable = ant_args[-1] is type(None)
         else:
             type_ = ant
 
