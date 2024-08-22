@@ -8,7 +8,7 @@ from typing import get_origin, get_args, get_type_hints
 from pyspark.sql import DataFrame
 from pyspark.sql import types as T
 
-def to_pyspark_type(py_type: type) -> T.DataType:
+def to_pyspark_type(py_type: type) -> T.DataTypeSingleton:
 
     # explicit equality comparison, unlike in match-case
     if py_type is bool: return T.BooleanType  # noqa: E701

@@ -8,7 +8,7 @@ from conftest import dataframe_diff, create_spark_session
 create_spark_session()
 
 def test_column_rank():
-    spark = SparkSession.getActiveSession()
+    spark : SparkSession = SparkSession.getActiveSession() # type: ignore
     df = spark.range(5)
     df = df.withColumn('rank', column_rank(df['id'], [1, 3]))
     expected_df = spark.createDataFrame(
