@@ -5,7 +5,7 @@ import tempfile
 from types import UnionType
 from typing import get_origin, get_args, get_type_hints
 
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import types as T
 
 def to_pyspark_type(py_type: type) -> T.DataTypeSingleton:
@@ -62,6 +62,8 @@ def annotations_to_schema(dataclass: type) -> T.StructType:
 
 def write_single_csv(df: DataFrame, path: str, mode: str) -> None:
 
+    spark: SparkSession = SparkSession.getActiveSession() # type: ignore
+
     with tempfile.TemporaryDirectory() as temp_path:
         df.coalesce(1).write.csv(temp_path, header=True, mode='overwrite')
         csv_path = next(Path(temp_path).glob('*.csv'))
@@ -69,10 +71,15 @@ def write_single_csv(df: DataFrame, path: str, mode: str) -> None:
         if mode == 'overwrite':
             csv_path.replace(path)
 
+        # TODO extract to aappend_to_csv
         elif mode == 'append':
             if Path(path).exists():
-                # TODO schema check
-                subprocess.run(f'tail -n +2 {str(csv_path)} >> {path}', shell=True)
+                # columns check
+                target_columns = spark.read.csv(path, header=True).columns
+                if df.columns == target_columns:
+                    subprocess.run(f'tail -n +2 {str(csv_path)} >> {path}', shell=True)
+                else:
+                    raise ValueError('dataframe columns do not match existing CSV columns')
             else:
                 csv_path.replace(path)
 
