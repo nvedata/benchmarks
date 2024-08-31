@@ -60,9 +60,29 @@ def annotations_to_schema(dataclass: type) -> T.StructType:
     return schema
 
 
-def write_single_csv(df: DataFrame, path: str, mode: str) -> None:
+def append_to_single_csv(
+    source_path: str,
+    target_path: str,
+    source_columns: list[str]
+    ) -> None:
+    '''Append a CSV file to another single CSV file.
+    Raise exception on columns mismatch.
+    '''
 
     spark: SparkSession = SparkSession.getActiveSession() # type: ignore
+
+    if Path(target_path).exists():
+        # columns check
+        target_columns = spark.read.csv(target_path, header=True).columns
+        if source_columns == target_columns:
+            subprocess.run(f'tail -n +2 {source_path} >> {target_path}', shell=True)
+        else:
+            raise ValueError('dataframe columns do not match existing CSV columns')
+    else:
+        Path(source_path).replace(target_path)
+
+
+def write_single_csv(df: DataFrame, path: str, mode: str) -> None:
 
     with tempfile.TemporaryDirectory() as temp_path:
         df.coalesce(1).write.csv(temp_path, header=True, mode='overwrite')
@@ -70,19 +90,8 @@ def write_single_csv(df: DataFrame, path: str, mode: str) -> None:
 
         if mode == 'overwrite':
             csv_path.replace(path)
-
-        # TODO extract to aappend_to_csv
         elif mode == 'append':
-            if Path(path).exists():
-                # columns check
-                target_columns = spark.read.csv(path, header=True).columns
-                if df.columns == target_columns:
-                    subprocess.run(f'tail -n +2 {str(csv_path)} >> {path}', shell=True)
-                else:
-                    raise ValueError('dataframe columns do not match existing CSV columns')
-            else:
-                csv_path.replace(path)
-
+            append_to_single_csv(str(csv_path), path, df.columns)
         else:
             raise ValueError(f'Unknown mode {mode}')
 
