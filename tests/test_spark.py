@@ -104,7 +104,6 @@ def test_write_schema() -> None:
     ])
 
     write_schema(expected_schema, path)
-    # TODO assert with read_schema
     schema = read_schema(path)
 
     assert schema == expected_schema
