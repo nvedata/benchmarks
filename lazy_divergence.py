@@ -28,13 +28,13 @@ def main():
     parent = df.withColumn("max_value", F.last("value").over(w_spec))
 
     left = parent.orderBy("part_key")
-    write_single_csv(left, "left.csv", mode="overwrite")
+    write_single_csv(left, "data/left.csv", mode="overwrite")
     
     right = parent.orderBy("part_key")
-    write_single_csv(left, "right.csv", mode="overwrite")
+    write_single_csv(left, "data/right.csv", mode="overwrite")
 
-    left = spark.read.csv('left.csv')
-    right = spark.read.csv('right.csv')
+    left = spark.read.csv('data/left.csv')
+    right = spark.read.csv('data/right.csv')
 
     left_diff = left.exceptAll(right)
     right_diff = right.exceptAll(left)
