@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -79,6 +80,7 @@ def append_to_single_csv(
         else:
             raise ValueError('dataframe columns do not match existing CSV columns')
     else:
+        os.makedirs(Path(target_path).parent, exist_ok=True)
         Path(source_path).replace(target_path)
 
 
@@ -89,6 +91,7 @@ def write_single_csv(df: DataFrame, path: str, mode: str) -> None:
         csv_path = next(Path(temp_path).glob('*.csv'))
 
         if mode == 'overwrite':
+            os.makedirs(Path(path).parent, exist_ok=True)
             csv_path.replace(path)
         elif mode == 'append':
             append_to_single_csv(str(csv_path), path, df.columns)

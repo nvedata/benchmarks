@@ -28,7 +28,7 @@ def test_write_single_csv() -> None:
     # TODO setup and tear down
     spark = SparkSession.getActiveSession()
 
-    path = 'tests/example.csv'
+    path = 'tests/data/example.csv'
     schema = T.StructType([
         T.StructField('int_value', T.IntegerType()),
         T.StructField('float_value', T.FloatType()),
@@ -55,7 +55,7 @@ def test_write_single_csv_append() -> None:
 
     spark = SparkSession.getActiveSession()
 
-    path = 'tests/example.csv'
+    path = 'tests/data/example.csv'
     schema = T.StructType([
         T.StructField('int_value', T.IntegerType()),
         T.StructField('float_value', T.FloatType()),
