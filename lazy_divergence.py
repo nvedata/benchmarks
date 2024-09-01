@@ -1,13 +1,17 @@
 from pyspark.sql import SparkSession, Window
 from pyspark.sql import functions as F
 
+from utils.spark import write_single_csv
+
 def main():
 
     spark: SparkSession = SparkSession.builder.master("local[2]").getOrCreate() # type: ignore
     part_keys = spark.range(10).withColumnRenamed("id", "part_key")
-    agg_keys = spark.range(10).withColumnRenamed("id", "agg_key")
-    df = part_keys.crossJoin(agg_keys)
-    df = df.withColumn("value", F.col("part_key") * 10 + F.col("agg_key"))
+    sort_keys = spark.range(10).withColumnRenamed("id", "sort_key")
+    df = part_keys.crossJoin(sort_keys)
+    df = df.withColumn("value", F.col("part_key") * 10 + F.col("sort_key"))
+    # set the same sort keys to randomized output
+    df = df.withColumn("sort_key", F.lit(1))
     
     # force shuffling
     df = df.repartition(20)
@@ -15,15 +19,22 @@ def main():
     w_spec = (
         Window
         .partitionBy("part_key")
-        .orderBy("value")
+        .orderBy("sort_key")
         .rowsBetween(
             Window.unboundedPreceding,
             Window.unboundedFollowing
         )
     )
-    parent = df.withColumn("max_agg_key", F.last("agg_key").over(w_spec))
-    left = parent.orderBy("part_key") 
+    parent = df.withColumn("max_value", F.last("value").over(w_spec))
+
+    left = parent.orderBy("part_key")
+    write_single_csv(left, "left.csv", mode="overwrite")
+    
     right = parent.orderBy("part_key")
+    write_single_csv(left, "right.csv", mode="overwrite")
+
+    left = spark.read.csv('left.csv')
+    right = spark.read.csv('right.csv')
 
     left_diff = left.exceptAll(right)
     right_diff = right.exceptAll(left)
